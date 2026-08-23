@@ -23,6 +23,7 @@ from transformers import (
     WhisperForConditionalGeneration,
     WhisperProcessor,
 )
+from transformers.trainer_utils import get_last_checkpoint
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import config
@@ -123,21 +124,23 @@ def main():
         # "chỉnh" nhẹ theo giọng miền Trung, nên learning rate phải nhỏ để
         # không phá vỡ (catastrophic forgetting) kiến thức đã học trước đó.
         # warmup_steps: tăng dần learning rate từ 0 lên giá trị đích trong
-        # 500 step đầu, giúp tránh update quá mạnh khi model/optimizer chưa
-        # "khởi động" ổn định (đặc biệt quan trọng với learning rate nhỏ +
-        # optimizer Adam).
+        # ~10% tổng số step đầu, giúp tránh update quá mạnh khi model/optimizer
+        # chưa "khởi động" ổn định (đặc biệt quan trọng với learning rate nhỏ
+        # + optimizer Adam). Tính theo % thay vì số cố định để tự co giãn
+        # đúng tỉ lệ mỗi khi đổi MAX_TRAIN_STEPS trong config.py.
         learning_rate=1e-5,
-        warmup_steps=500,
+        warmup_steps=int(0.1 * config.MAX_TRAIN_STEPS),
 
         # --- Độ dài quá trình train ---
         # Dùng max_steps thay vì num_train_epochs vì: với dataset nhỏ (Central
         # chỉ là 1 phần của ViMD), số step/epoch có thể ít, và ta muốn kiểm
         # soát chính xác tổng công sức train (dễ ước lượng thời gian trên
-        # Colab free có giới hạn phiên làm việc). 4000 step là điểm khởi đầu
-        # hợp lý cho vài nghìn mẫu; theo dõi wer trên valid (log bên dưới) để
-        # biết có cần train thêm/ít hơn không — nếu wer ngừng giảm (hoặc tăng
-        # lại = overfitting) thì nên dừng sớm.
-        max_steps=4000,
+        # Colab free có giới hạn phiên làm việc). Giá trị lấy từ
+        # config.MAX_TRAIN_STEPS (xem giải thích + cách đo tốc độ thực tế ở
+        # đó) — theo dõi wer trên valid (log bên dưới) để biết có cần train
+        # thêm/ít hơn không; nếu wer ngừng giảm (hoặc tăng lại = overfitting)
+        # thì nên dừng sớm.
+        max_steps=config.MAX_TRAIN_STEPS,
 
         # --- Tiết kiệm bộ nhớ ---
         # gradient_checkpointing: KHÔNG lưu toàn bộ activations trong forward
@@ -181,11 +184,31 @@ def main():
         eval_dataset=ds["valid"],
         data_collator=data_collator,
         compute_metrics=compute_metrics,
-        tokenizer=processor.feature_extractor,
+        # Các bản transformers mới (>=4.46) đổi tên tham số này từ `tokenizer`
+        # thành `processing_class` (nhận feature_extractor/tokenizer/processor
+        # đều được — Trainer chỉ dùng nó để lưu kèm checkpoint, không ảnh
+        # hưởng tới việc train).
+        processing_class=processor.feature_extractor,
     )
 
-    print("\nBắt đầu fine-tune... (theo dõi cột 'wer' trong log mỗi 500 step)")
-    trainer.train()
+    # --- Tự resume từ checkpoint gần nhất nếu có ---
+    # Nếu output_dir đã chứa checkpoint từ lần chạy trước (vd. phiên Colab bị
+    # ngắt giữa chừng), tự động tiếp tục từ đó thay vì train lại từ đầu.
+    # CHỈ có tác dụng thật sự nếu output_dir trỏ tới nơi bền vững (Google
+    # Drive/Kaggle output) — xem hướng dẫn WHISPER_PROJECT_OUTPUTS_DIR trong
+    # config.py. Nếu output_dir nằm trên đĩa tạm của máy ảo, checkpoint cũng
+    # mất theo khi ngắt phiên nên sẽ không tìm thấy gì để resume.
+    last_checkpoint = get_last_checkpoint(training_args.output_dir) if os.path.isdir(
+        training_args.output_dir
+    ) else None
+    if last_checkpoint is not None:
+        print(f"\nTìm thấy checkpoint cũ tại: {last_checkpoint}")
+        print("Sẽ tiếp tục train từ checkpoint này thay vì bắt đầu lại từ đầu.")
+    else:
+        print("\nKhông tìm thấy checkpoint cũ, bắt đầu train từ đầu.")
+
+    print("Bắt đầu fine-tune... (theo dõi cột 'wer' trong log mỗi 500 step)")
+    trainer.train(resume_from_checkpoint=last_checkpoint)
 
     print(f"\nLưu model đã fine-tune (bản tốt nhất theo valid WER) vào: {config.FINETUNED_MODEL_DIR}")
     trainer.save_model(config.FINETUNED_MODEL_DIR)

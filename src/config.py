@@ -58,18 +58,37 @@ MODEL_NAME = "openai/whisper-small"
 LANGUAGE = "vietnamese"     # dùng cho WhisperTokenizer / generation_config
 TASK = "transcribe"         # transcribe (giữ nguyên tiếng Việt), không dịch
 
+# Tổng số optimizer step khi fine-tune (xem giải thích đầy đủ trong
+# 03_finetune_whisper.py). Giá trị này ĐÃ ĐƯỢC ĐO THỰC TẾ, không phải mặc
+# định suông: với train=4617 mẫu, per_device_train_batch_size=8,
+# gradient_accumulation_steps=2 (effective batch=16) trên GPU T4 free,
+# tốc độ đo được là ~5.3s/step (có gradient_checkpointing). 2000 step ~=
+# 2000*16/4617 ≈ 6.9 epoch, và ước tính ~3-3.5 giờ (kể cả eval/save) — nằm
+# trong giới hạn phiên Colab free (thường 4-4.5 giờ), có buffer an toàn.
+# Nếu bạn đổi batch size/gradient_accumulation hoặc chạy trên GPU khác,
+# hãy đo lại s/it ở ~20-50 step đầu rồi tính lại số này.
+MAX_TRAIN_STEPS = 2000
+
 TARGET_SAMPLING_RATE = 16000  # Whisper luôn yêu cầu input 16kHz mono
 
 # ---------------------------------------------------------------------------
 # 3) Đường dẫn thư mục (tất cả nằm trong data/ và outputs/, đã .gitignore)
 # ---------------------------------------------------------------------------
+# Cho phép override bằng biến môi trường — dùng khi chạy trên Colab/Kaggle và
+# muốn OUTPUTS_DIR trỏ thẳng vào Google Drive (hoặc /kaggle/working) thay vì
+# đĩa tạm của máy ảo. Lý do quan trọng: checkpoint lưu ở đĩa tạm (/content/...)
+# sẽ MẤT SẠCH nếu phiên bị ngắt kết nối; lưu trực tiếp vào nơi bền vững giúp
+# 03_finetune_whisper.py tự resume từ checkpoint gần nhất khi chạy lại thay vì
+# train lại từ đầu. Cách dùng, chạy TRƯỚC khi import config:
+#   import os
+#   os.environ["WHISPER_PROJECT_OUTPUTS_DIR"] = "/content/drive/MyDrive/whisper-central-vn/outputs"
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-DATA_DIR = os.path.join(PROJECT_ROOT, "data")
+DATA_DIR = os.environ.get("WHISPER_PROJECT_DATA_DIR", os.path.join(PROJECT_ROOT, "data"))
 RAW_CENTRAL_DIR = os.path.join(DATA_DIR, "vimd_central_raw")   # output bước 1
 PROCESSED_DIR = os.path.join(DATA_DIR, "vimd_central_processed")  # output bước 2
 
-OUTPUTS_DIR = os.path.join(PROJECT_ROOT, "outputs")
+OUTPUTS_DIR = os.environ.get("WHISPER_PROJECT_OUTPUTS_DIR", os.path.join(PROJECT_ROOT, "outputs"))
 FINETUNED_MODEL_DIR = os.path.join(OUTPUTS_DIR, "whisper-small-central-vn")
 EVAL_RESULTS_PATH = os.path.join(OUTPUTS_DIR, "wer_comparison.json")
 

@@ -84,8 +84,13 @@ demo = gr.Interface(
 if __name__ == "__main__":
     # Tự động bật share=True khi chạy trên Colab (link local 127.0.0.1 không
     # mở được từ trình duyệt thật vì Colab chạy trên máy ảo riêng, cần link
-    # public tạm thời gradio.live). Khi chạy ở máy local thì không cần share,
-    # nên chỉ bật khi phát hiện đúng môi trường Colab, tránh phải sửa tay
-    # dòng này mỗi lần rồi lại mất khi git pull/checkout.
-    running_on_colab = "google.colab" in sys.modules
+    # public tạm thời gradio.live). Khi chạy ở máy local thì không cần share.
+    #
+    # Lưu ý: script này thường được chạy qua `!python src/05_app_gradio.py`,
+    # tức là 1 TIẾN TRÌNH CON hoàn toàn mới, khác với tiến trình Python của
+    # chính notebook — nên kiểm tra `"google.colab" in sys.modules` sẽ luôn
+    # ra False (module đó chỉ được import sẵn trong kernel notebook, không
+    # tự có trong subprocess). Thay vào đó, kiểm tra biến môi trường Colab
+    # đặt cho toàn bộ máy ảo (mọi tiến trình con đều kế thừa được).
+    running_on_colab = "COLAB_RELEASE_TAG" in os.environ or "COLAB_GPU" in os.environ
     demo.launch(share=running_on_colab)

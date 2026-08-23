@@ -82,6 +82,10 @@ demo = gr.Interface(
 )
 
 if __name__ == "__main__":
-    # share=False mặc định (chạy local). Đổi thành True nếu chạy trên Colab
-    # và muốn có link public tạm thời để test từ điện thoại.
-    demo.launch(share=False)
+    # Tự động bật share=True khi chạy trên Colab (link local 127.0.0.1 không
+    # mở được từ trình duyệt thật vì Colab chạy trên máy ảo riêng, cần link
+    # public tạm thời gradio.live). Khi chạy ở máy local thì không cần share,
+    # nên chỉ bật khi phát hiện đúng môi trường Colab, tránh phải sửa tay
+    # dòng này mỗi lần rồi lại mất khi git pull/checkout.
+    running_on_colab = "google.colab" in sys.modules
+    demo.launch(share=running_on_colab)

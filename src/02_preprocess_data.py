@@ -105,15 +105,19 @@ def main():
         ds = load_raw_split(split_name)
         print(f"  {len(ds)} mẫu. Đang trích input_features + labels (Dataset.map)...")
 
-        # num_proc>1 chạy song song trên nhiều core CPU -> nhanh hơn đáng kể
-        # khi dataset vài nghìn mẫu. Trên Colab CPU thường có 2 core; đặt an
-        # toàn = 2, có thể tăng nếu máy bạn nhiều core hơn.
+        # num_proc>1 chạy song song trên nhiều tiến trình -> nhanh hơn khi
+        # dataset lớn. Tuy nhiên trên Colab free (RAM giới hạn), mỗi tiến
+        # trình con phải decode audio riêng, rất dễ bị OOM-killer giết ngầm
+        # (lỗi "subprocess abruptly died", không có traceback rõ ràng). Vì
+        # dataset ở đây chỉ vài nghìn mẫu, num_proc=1 (không multiprocessing)
+        # đã đủ nhanh và an toàn hơn. Nếu bạn có runtime nhiều RAM (vd. Colab
+        # Pro/High-RAM) và muốn tăng tốc, có thể thử num_proc=2.
         ds = ds.map(
             prepare_example,
             remove_columns=ds.column_names,  # bỏ cột thô (audio, text,...),
                                               # chỉ giữ input_features/labels
                                               # + các cột ta add thêm trong hàm
-            num_proc=2,
+            num_proc=1,
             desc=f"Trích features [{split_name}]",
         )
         processed[split_name] = ds

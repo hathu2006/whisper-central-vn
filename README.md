@@ -77,19 +77,26 @@ tiêu là đọc code cũng hiểu được lý do, không chỉ chạy được
 
 ## 3. Kết quả
 
-> 📝 Bảng dưới là khung mẫu, in ra tự động khi chạy
-> `src/04_evaluate_wer.py` (kết quả cũng được lưu vào
-> `outputs/wer_comparison.json`). **Điền số liệu thật sau khi bạn chạy xong
-> pipeline** — chưa có số liệu tại đây vì bước train/eval cần GPU và chưa
-> được chạy trong repo này.
+Đo trên tập **test** (609 mẫu, giữ nguyên split gốc của ViMD, model chưa
+từng thấy trong lúc train), bằng `src/04_evaluate_wer.py`:
 
 | Model | WER trên test set (miền Trung) |
 |---|---|
-| Whisper-small gốc (chưa fine-tune) | TODO |
-| Whisper-small đã fine-tune (miền Trung) | TODO |
+| Whisper-small gốc (chưa fine-tune) | 41.28% |
+| Whisper-small đã fine-tune (miền Trung) | **21.19%** |
 
-Ví dụ transcript minh họa (model gốc vs. fine-tune) cũng được in ra ở cuối
-`04_evaluate_wer.py` — nên chọn 2-3 câu tiêu biểu để đưa vào README/CV.
+**→ Giảm WER tương đối 48.7%** (41.28% → 21.19%) chỉ với ~30.5 giờ dữ liệu
+fine-tune (4617 mẫu train), 2000 step (~6.9 epoch), fine-tune trên 1 GPU T4
+free của Colab trong ~3h9p.
+
+Quá trình train: WER trên tập valid giảm đều qua các lần đánh giá
+(24.11% → 22.99% → 22.79% → 22.48%) mà không có dấu hiệu overfit ngược lại
+— cho thấy 2000 step là điểm dừng hợp lý, không lãng phí compute.
+
+> Ví dụ transcript minh họa (model gốc vs. fine-tune) được in ở cuối
+> `04_evaluate_wer.py` khi chạy — nên chọn 2-3 câu tiêu biểu (đặc biệt câu
+> có từ vựng/phát âm đặc trưng miền Trung) để đưa thêm vào README/CV cho
+> trực quan.
 
 ## 4. Hướng dẫn chạy lại
 

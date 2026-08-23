@@ -44,6 +44,14 @@ asr_pipeline = pipeline(
     model=config.FINETUNED_MODEL_DIR,
     device=device,
     generate_kwargs={"language": config.LANGUAGE, "task": config.TASK},
+    # Whisper chỉ xử lý cửa sổ cố định 30s/lần. Audio user upload có thể dài
+    # hơn 30s (khác với dữ liệu train, vốn đã lọc <=30s ở bước 01) -> nếu
+    # không khai báo chunk_length_s, model sẽ tự chuyển sang chế độ
+    # "long-form" và bắt buộc phải bật return_timestamps, gây lỗi. Khai báo
+    # chunk_length_s=30 để pipeline tự cắt audio dài thành từng đoạn 30s,
+    # chạy nhận diện từng đoạn rồi ghép transcript lại — xử lý được audio
+    # dài tùy ý mà không cần lo về giới hạn này.
+    chunk_length_s=30,
 )
 print("Model đã sẵn sàng.")
 
@@ -67,7 +75,10 @@ demo = gr.Interface(
         "Upload file audio hoặc thu âm trực tiếp bằng micro để thử."
     ),
     examples=None,  # có thể thêm list đường dẫn file .wav mẫu vào đây nếu muốn
-    allow_flagging="never",
+    # Lưu ý: KHÔNG truyền allow_flagging/flagging_mode ở đây — tên tham số này
+    # đã đổi giữa các phiên bản Gradio (allow_flagging ở bản cũ, flagging_mode
+    # từ Gradio 5.x). Bỏ hẳn tham số (mặc định flagging vẫn bật nhưng không
+    # ảnh hưởng tới demo) để code không phụ thuộc version Gradio cụ thể.
 )
 
 if __name__ == "__main__":

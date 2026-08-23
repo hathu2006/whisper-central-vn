@@ -1,0 +1,15 @@
+# Dữ liệu & model — quá lớn để đưa lên Git, và dataset có license NC-ND
+# (xem README mục "Lưu ý bản quyền") nên KHÔNG commit audio/model lên repo.
+data/
+outputs/
+
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.venv/
+venv/
+
+# OS
+.DS_Store
+Thumbs.db

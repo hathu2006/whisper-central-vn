@@ -1,0 +1,19 @@
+# Core ML
+torch>=2.1.0
+transformers>=4.41.0
+datasets>=2.19.0
+accelerate>=0.30.0
+evaluate>=0.4.2
+jiwer>=3.0.3          # backend đo WER, evaluate.load("wer") cần thư viện này
+
+# Audio
+soundfile>=0.12.1
+librosa>=0.10.1
+
+# Demo
+gradio>=4.31.0
+
+# Tiện ích
+numpy
+pandas
+tqdm

@@ -66,6 +66,15 @@ asr_pipeline = pipeline(
         # tượng "CÁI CÁI CÁI..." gặp phải). Tắt hẳn cơ chế này để mỗi cửa sổ
         # 30s được sinh độc lập, 1 đoạn hallucinate sẽ không lây lan.
         "condition_on_prev_tokens": False,
+        # Dải nhiệt độ dùng cho cơ chế fallback: Whisper thử generate với
+        # temperature=0.0 (greedy) trước; nếu kết quả bị nghi hallucinate
+        # (vi phạm 1 trong 3 ngưỡng bên dưới), tự động thử lại với nhiệt độ
+        # cao hơn (ngẫu nhiên hơn) theo thứ tự trong danh sách này — đúng
+        # dải giá trị mặc định của OpenAI Whisper gốc. BẮT BUỘC phải khai
+        # báo khi dùng logprob_threshold/compression_ratio_threshold, nếu
+        # không cơ chế fallback bên trong sẽ lỗi vì không biết thử nhiệt độ
+        # nào tiếp theo.
+        "temperature": (0.0, 0.2, 0.4, 0.6, 0.8, 1.0),
         # 3 ngưỡng dưới đây là cơ chế fallback gốc của Whisper (OpenAI) để
         # phát hiện đoạn không có tiếng nói / audio nhiễu và bỏ qua thay vì
         # cố sinh chữ: no_speech_threshold (xác suất "không có ai nói" đủ

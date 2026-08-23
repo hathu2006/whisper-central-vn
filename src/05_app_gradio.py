@@ -43,21 +43,44 @@ asr_pipeline = pipeline(
     task="automatic-speech-recognition",
     model=config.FINETUNED_MODEL_DIR,
     device=device,
-    generate_kwargs={"language": config.LANGUAGE, "task": config.TASK},
     # Whisper chỉ xử lý cửa sổ cố định 30s/lần. Audio user upload có thể dài
     # hơn 30s (khác với dữ liệu train, vốn đã lọc <=30s ở bước 01).
     #
     # ĐÃ THỬ chunk_length_s=30 trước đó nhưng transformers tự cảnh báo cách
     # này "very experimental with seq2seq models" — pipeline cắt audio thành
-    # từng đoạn 30s ĐỘC LẬP rồi ghép lại, không giữ ngữ cảnh giữa các đoạn,
-    # dễ bị lặp/mất câu ở ranh giới đoạn (đúng hiện tượng transcript bị cắt
-    # cụt gặp phải). Đổi sang return_timestamps=True: đây là cơ chế
-    # "long-form generation" CHÍNH THỨC được xây sẵn trong
-    # WhisperForConditionalGeneration.generate() (chính là giải pháp được
-    # gợi ý trong thông báo lỗi gốc "> 30 seconds..."), tự động nối tiếp
-    # ngữ cảnh qua nhiều cửa sổ 30s bằng token timestamp, cho kết quả đầy đủ
-    # và mạch lạc hơn nhiều so với chunk_length_s.
+    # từng đoạn 30s ĐỘC LẬP rồi ghép lại, dễ mất câu ở ranh giới đoạn.
+    # Đổi sang return_timestamps=True: cơ chế "long-form generation" CHÍNH
+    # THỨC xây sẵn trong WhisperForConditionalGeneration.generate() (đúng
+    # giải pháp được gợi ý trong lỗi gốc "> 30 seconds..."), tự nối ngữ cảnh
+    # qua nhiều cửa sổ 30s bằng token timestamp.
     return_timestamps=True,
+    generate_kwargs={
+        "language": config.LANGUAGE,
+        "task": config.TASK,
+        # Mặc định Whisper lấy CHÍNH text đã sinh ra ở cửa sổ 30s trước làm
+        # ngữ cảnh cho cửa sổ sau (condition_on_prev_tokens=True). Nếu cửa
+        # sổ đầu là nhạc nền/im lặng và model (đặc biệt model đã fine-tune,
+        # chỉ thấy giọng nói rõ ràng lúc train, không quen với "không có
+        # tiếng nói") hallucinate ra 1 từ lặp, ngữ cảnh sai đó bị đẩy tiếp
+        # sang mọi cửa sổ sau -> lặp vô hạn xuyên suốt cả bài (đúng hiện
+        # tượng "CÁI CÁI CÁI..." gặp phải). Tắt hẳn cơ chế này để mỗi cửa sổ
+        # 30s được sinh độc lập, 1 đoạn hallucinate sẽ không lây lan.
+        "condition_on_prev_tokens": False,
+        # 3 ngưỡng dưới đây là cơ chế fallback gốc của Whisper (OpenAI) để
+        # phát hiện đoạn không có tiếng nói / audio nhiễu và bỏ qua thay vì
+        # cố sinh chữ: no_speech_threshold (xác suất "không có ai nói" đủ
+        # cao thì coi là im lặng), logprob_threshold (model không đủ tự tin
+        # về cả câu thì coi là generate lỗi), compression_ratio_threshold
+        # (transcript bị lặp/nén bất thường, dấu hiệu kinh điển của
+        # hallucination lặp từ).
+        "no_speech_threshold": 0.6,
+        "logprob_threshold": -1.0,
+        "compression_ratio_threshold": 2.4,
+        # Chặn thêm ở mức decoding: không cho phép lặp lại cùng 1 cụm 3 từ
+        # liên tiếp — lưới an toàn cuối cùng chống lặp cụm từ như
+        # "video tiếp theo của mình" lặp hàng chục lần.
+        "no_repeat_ngram_size": 3,
+    },
 )
 print("Model đã sẵn sàng.")
 

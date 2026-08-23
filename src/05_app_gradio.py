@@ -45,13 +45,19 @@ asr_pipeline = pipeline(
     device=device,
     generate_kwargs={"language": config.LANGUAGE, "task": config.TASK},
     # Whisper chỉ xử lý cửa sổ cố định 30s/lần. Audio user upload có thể dài
-    # hơn 30s (khác với dữ liệu train, vốn đã lọc <=30s ở bước 01) -> nếu
-    # không khai báo chunk_length_s, model sẽ tự chuyển sang chế độ
-    # "long-form" và bắt buộc phải bật return_timestamps, gây lỗi. Khai báo
-    # chunk_length_s=30 để pipeline tự cắt audio dài thành từng đoạn 30s,
-    # chạy nhận diện từng đoạn rồi ghép transcript lại — xử lý được audio
-    # dài tùy ý mà không cần lo về giới hạn này.
-    chunk_length_s=30,
+    # hơn 30s (khác với dữ liệu train, vốn đã lọc <=30s ở bước 01).
+    #
+    # ĐÃ THỬ chunk_length_s=30 trước đó nhưng transformers tự cảnh báo cách
+    # này "very experimental with seq2seq models" — pipeline cắt audio thành
+    # từng đoạn 30s ĐỘC LẬP rồi ghép lại, không giữ ngữ cảnh giữa các đoạn,
+    # dễ bị lặp/mất câu ở ranh giới đoạn (đúng hiện tượng transcript bị cắt
+    # cụt gặp phải). Đổi sang return_timestamps=True: đây là cơ chế
+    # "long-form generation" CHÍNH THỨC được xây sẵn trong
+    # WhisperForConditionalGeneration.generate() (chính là giải pháp được
+    # gợi ý trong thông báo lỗi gốc "> 30 seconds..."), tự động nối tiếp
+    # ngữ cảnh qua nhiều cửa sổ 30s bằng token timestamp, cho kết quả đầy đủ
+    # và mạch lạc hơn nhiều so với chunk_length_s.
+    return_timestamps=True,
 )
 print("Model đã sẵn sàng.")
 

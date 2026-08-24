@@ -93,24 +93,47 @@ Quá trình train: WER trên tập valid giảm đều qua các lần đánh gi�
 (24.11% → 22.99% → 22.79% → 22.48%) mà không có dấu hiệu overfit ngược lại
 — cho thấy 2000 step là điểm dừng hợp lý, không lãng phí compute.
 
-> Ví dụ transcript minh họa (model gốc vs. fine-tune) được in ở cuối
-> `04_evaluate_wer.py` khi chạy — nên chọn 2-3 câu tiêu biểu (đặc biệt câu
-> có từ vựng/phát âm đặc trưng miền Trung) để đưa thêm vào README/CV cho
-> trực quan.
+**Ví dụ thực tế** — test qua demo Gradio (bước 5) với 1 đoạn video giọng Huế
+ngoài tập test (không nằm trong quá trình train/eval):
+
+> **Model fine-tune:** "Thì từ đầu tiên mà mình muốn chia sẻ với các bạn đó
+> là từ rửa. Không phải là chỉ đơn quần là kết là từ rưỡi không thôi mà phải
+> gắn vào với từ án. À rữa, đó á rữa. Ví dụ như các bạn về huế, các bạn ăn
+> mục tô bú, tô cơm hến, chẳng hạn. Đó khi mong người bưng ra, đó thì cái từ
+> át rữa đó được dự hình như thế."
+>
+> **Thực tế:** "Thì từ đầu tiên mà mình muốn chia sẻ với các bạn đó là từ
+> rứa. Không phải là chỉ đơn thuần là cái là từ rứa không thôi mà phải gắn
+> vào với từ a. A rữa, đó a rữa. Ví dụ như các bạn về huế, các bạn ăn một tô
+> bún, tô cơm hến, chẳng hạn. Đó khi mọi người bưng ra, đó thì cái từ a rứa
+> đó được được hiểu như thế."
+
+Nhận diện đúng phần lớn câu, kể cả các từ địa phương ít gặp ("huế", "cơm
+hến"). Lỗi còn lại tập trung ở đúng nhóm từ khó nhất: chính từ cảm thán đặc
+trưng miền Trung **"rứa"** bị nhầm thành "rửa/rưỡi/rữa" nhiều lần trong cùng
+1 đoạn — cho thấy model vẫn chưa nắm chắc từ vựng đặc thù này dù đã cải
+thiện đáng kể so với model gốc (xem mục Hạn chế bên dưới).
 
 ## 4. Hướng dẫn chạy lại
 
 ### Trên Google Colab (khuyến nghị — có GPU free)
 
-1. Push repo này lên GitHub.
-2. Mở [notebooks/colab_quickstart.ipynb](notebooks/colab_quickstart.ipynb)
-   trong Colab (hoặc Open in Colab từ GitHub).
-3. Runtime > Change runtime type > GPU (T4).
-4. Sửa biến `REPO_URL` trong cell đầu tiên, chạy tuần tự các cell.
-5. **Khuyến nghị**: chạy bước 1 với `--max_samples_per_split 200` trước để
-   kiểm tra toàn bộ pipeline (1→5) chạy đúng, trước khi chạy full dataset
-   (tốn nhiều thời gian tải + train hơn, và phiên Colab free có thể bị ngắt
-   giữa chừng).
+1. Mở [notebooks/colab_quickstart.ipynb](notebooks/colab_quickstart.ipynb)
+   trong Colab (hoặc Open in Colab từ GitHub) — đã có sẵn `REPO_URL` trỏ
+   đúng repo này, không cần sửa gì thêm.
+2. Runtime > Change runtime type > GPU (T4).
+3. Chạy tuần tự các cell, **bao gồm cell mount Google Drive** ngay đầu
+   notebook — quan trọng vì Colab free có thể ngắt phiên bất cứ lúc nào,
+   trong khi model checkpoint (bước 3) cần lưu ở nơi bền vững để không mất
+   công train lại từ đầu (script tự resume từ checkpoint gần nhất nếu tìm
+   thấy trên Drive).
+4. **Khuyến nghị**: chạy bước 1 với `--max_samples_per_split 50` trước để
+   kiểm tra toàn bộ pipeline (1→5) chạy đúng (1-2 phút), trước khi chạy full
+   dataset (tốn nhiều thời gian tải + train hơn).
+5. Nếu phiên Colab bị ngắt/hết hạn giữa chừng: mount lại Drive, set lại
+   biến `WHISPER_PROJECT_OUTPUTS_DIR`, `git clone` lại repo (vì `/content`
+   bị xóa sạch khi phiên mới), rồi chạy lại đúng script đang dang dở —
+   không cần làm lại từ bước 1 nếu model/data đã có trên Drive.
 
 ### Chạy local (cần Python 3.10+, khuyến nghị có GPU NVIDIA)
 
@@ -155,6 +178,17 @@ python src/05_app_gradio.py
   hướng mở rộng nếu muốn fine-tune model lớn hơn (base/large) trên free GPU.
 - WER là thước đo ở mức từ; với tiếng Việt (đơn âm tiết, nhiều từ láy/ghép),
   nên cân nhắc thêm CER (Character Error Rate) để đánh giá toàn diện hơn.
+- Model vẫn yếu nhất ở đúng nhóm từ cảm thán đặc trưng miền Trung (mô, ri,
+  răng, rứa...) — hợp lý vì tần suất xuất hiện trong tập train không nhiều;
+  đây là hướng cải thiện rõ ràng nếu có thêm dữ liệu.
+- Dữ liệu train chỉ gồm các đoạn có giọng nói rõ ràng (đã lọc ≤30s ở bước
+  1), không có đoạn nhạc nền/im lặng — nên khi demo gặp audio dài có xen
+  đoạn không lời (nhạc intro...), model có thể hallucinate (sinh lặp từ vô
+  nghĩa). Đã giảm thiểu bằng cách tắt `condition_on_prev_tokens` + bật các
+  ngưỡng phát hiện no-speech/logprob/compression-ratio chuẩn của Whisper
+  (xem `src/05_app_gradio.py`), nhưng không loại bỏ hoàn toàn 100%. Demo
+  hoạt động tốt nhất với audio ngắn, giọng nói rõ ràng — đúng phạm vi dữ
+  liệu đã train.
 
 ## 7. Tài liệu tham khảo
 

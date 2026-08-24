@@ -166,8 +166,8 @@ ngoài tập test (không nằm trong quá trình train/eval):
 >
 > **Thực tế:** "Thì từ đầu tiên mà mình muốn chia sẻ với các bạn đó là từ
 > rứa. Không phải là chỉ đơn thuần là cái là từ rứa không thôi mà phải gắn
-> vào với từ a. A rữa, đó a rữa. Ví dụ như các bạn về huế, các bạn ăn một tô
-> bún, tô cơm hến, chẳng hạn. Đó khi mọi người bưng ra, đó thì cái từ a rứa
+> vào với từ à. À rứa, đó à rứa. Ví dụ như các bạn về huế, các bạn ăn một tô
+> bún, tô cơm hến, chẳng hạn. Đó khi mọi người bưng ra, đó thì cái từ à rứa
 > đó được được hiểu như thế."
 
 Nhận diện đúng phần lớn câu, kể cả các từ địa phương ít gặp ("huế", "cơm

@@ -123,6 +123,15 @@ def main():
                                               # giữ lại province_name +
                                               # các cột ta add thêm trong hàm
             num_proc=1,
+            # writer_batch_size: số dòng gom lại trong RAM trước khi ghi 1
+            # lần xuống đĩa (mặc định 1000). input_features là spectrogram
+            # 80x3000 float32 (~960KB/mẫu) -> gom 1000 mẫu cùng lúc có thể
+            # cần thêm nhiều GB RAM ngay lúc "chốt" (finalize) file, dễ vượt
+            # trần RAM 12GB của Colab free và bị OOM-killer giết ngầm (không
+            # có traceback). Hạ xuống 50 để ghi xuống đĩa thường xuyên hơn,
+            # giữ RAM đỉnh điểm thấp hơn nhiều — đánh đổi bằng việc ghi đĩa
+            # (I/O) nhiều lần hơn 1 chút, không đáng kể so với lợi ích ổn định.
+            writer_batch_size=50,
             desc=f"Trích features [{split_name}]",
         )
         processed[split_name] = ds

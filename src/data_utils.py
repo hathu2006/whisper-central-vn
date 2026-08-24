@@ -5,6 +5,7 @@ data_utils.py — Các thành phần dùng chung giữa 03_finetune_whisper.py v
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import Any
 
@@ -56,13 +57,28 @@ class DataCollatorSpeechSeq2SeqWithPadding:
         return batch
 
 
+# Các ký tự dấu câu cần bỏ trước khi tính WER/CER. CHỈ liệt kê dấu câu
+# (không đụng tới chữ cái có dấu thanh điệu tiếng Việt như á, à, ả, ã, ạ...
+# — những ký tự đó là 1 phần của TỪ, khác hoàn toàn với dấu câu ở đây).
+_PUNCTUATION_PATTERN = re.compile(r"[.,!?;:\"'“”‘’()\[\]{}…\-–—]")
+
+
 def normalize_text(text: str) -> str:
     """
-    Chuẩn hóa text tối thiểu trước khi tính WER: lowercase + xóa khoảng
-    trắng thừa. WER vốn nhạy cảm với khác biệt hoa/thường và dấu câu — nếu
-    không chuẩn hóa, một câu đúng nội dung nhưng khác cách viết hoa/chấm câu
-    sẽ bị tính là "sai", khiến con số WER không phản ánh đúng chất lượng
-    nhận diện thực sự. Áp dụng chuẩn hóa NHƯ NHAU cho cả reference lẫn
-    hypothesis để so sánh công bằng.
+    Chuẩn hóa text trước khi tính WER/CER: lowercase + bỏ dấu câu + xóa
+    khoảng trắng thừa.
+
+    Lý do cần bỏ dấu câu (không chỉ lowercase): Whisper có thể sinh ra dấu
+    câu ở vị trí hơi khác transcript gốc (vd. model ra "đó," còn transcript
+    gốc là "đó" — cùng 1 từ, chỉ khác dấu phẩy dính liền). Nếu không bỏ dấu
+    câu, WER sẽ tính "đó," và "đó" là 2 TỪ KHÁC NHAU hoàn toàn (thay vì nhận
+    ra đây là cùng 1 từ đúng), làm WER bị thổi phồng giả tạo — không phản
+    ánh đúng chất lượng nhận diện NỘI DUNG (mục tiêu chính của bài toán ASR
+    này), chỉ phản ánh sai khác về dấu câu vốn không quan trọng bằng.
+
+    Áp dụng chuẩn hóa NHƯ NHAU cho cả reference lẫn hypothesis để so sánh
+    công bằng.
     """
-    return " ".join(text.lower().split())
+    text = text.lower()
+    text = _PUNCTUATION_PATTERN.sub(" ", text)
+    return " ".join(text.split())

@@ -1,3 +1,23 @@
+# Không pin cứng version (để bám các bản vá lỗi/bảo mật mới nhất khi
+# `pip install -r requirements.txt`), nhưng các API của mấy thư viện này
+# (đặc biệt transformers, gradio) đổi khá nhanh giữa các bản lớn — trong lúc
+# làm dự án đã gặp thực tế vài lỗi do API đổi (Seq2SeqTrainer đổi
+# tokenizer= -> processing_class=; gr.Interface đổi allow_flagging= ->
+# flagging_mode=; Whisper generate() cần thêm temperature khi dùng
+# logprob_threshold/compression_ratio_threshold). Code trong repo đã được
+# verify chạy đúng trên Google Colab (2026-08) với đúng các version sau —
+# nếu bạn gặp lỗi tương tự (TypeError: unexpected keyword argument...) với
+# bản mới hơn, thử cài lại đúng các version này để loại trừ nguyên nhân do
+# API đổi:
+#
+#   accelerate==1.14.0
+#   datasets==4.0.0
+#   evaluate==0.4.6
+#   gradio==6.24.0
+#   jiwer==4.0.0
+#   torch==2.11.0+cu128 (bản có GPU CUDA 12.8, dùng trên Colab)
+#   transformers==5.15.0
+
 # Core ML
 torch>=2.1.0
 transformers>=4.41.0

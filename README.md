@@ -233,13 +233,12 @@ python src/05_app_gradio.py
 
 ## 6. Hạn chế & hướng phát triển tiếp
 
-- Dữ liệu miền Trung trong ViMD tuy có gán nhãn tỉnh nhưng không chắc phân
-  bố đều giữa các tỉnh — nên kiểm tra thống kê in ra ở bước 1 để biết tỉnh
-  nào chiếm đa số, tránh model chỉ "học tốt" 1-2 tỉnh cụ thể.
+- Đã kiểm tra WER theo từng tỉnh (mục 3) — dao động 11.99%–25.72%, không
+  lệch hẳn về 1-2 tỉnh chiếm đa số dữ liệu, nhưng cỡ mẫu mỗi tỉnh còn nhỏ
+  (~30 mẫu test/tỉnh) nên chưa đủ để kết luận chắc chắn tỉnh nào thực sự khó
+  hơn hay chỉ là nhiễu thống kê — cần thêm dữ liệu để kiểm chứng.
 - Chưa thử kỹ thuật tiết kiệm tài nguyên hơn nữa như LoRA/PEFT — có thể là
   hướng mở rộng nếu muốn fine-tune model lớn hơn (base/large) trên free GPU.
-- WER là thước đo ở mức từ; với tiếng Việt (đơn âm tiết, nhiều từ láy/ghép),
-  nên cân nhắc thêm CER (Character Error Rate) để đánh giá toàn diện hơn.
 - Model vẫn yếu nhất ở đúng nhóm từ cảm thán đặc trưng miền Trung (mô, ri,
   răng, rứa...) — hợp lý vì tần suất xuất hiện trong tập train không nhiều;
   đây là hướng cải thiện rõ ràng nếu có thêm dữ liệu.

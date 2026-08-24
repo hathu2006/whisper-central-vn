@@ -112,11 +112,16 @@ def main():
         # dataset ở đây chỉ vài nghìn mẫu, num_proc=1 (không multiprocessing)
         # đã đủ nhanh và an toàn hơn. Nếu bạn có runtime nhiều RAM (vd. Colab
         # Pro/High-RAM) và muốn tăng tốc, có thể thử num_proc=2.
+        # Giữ lại cột province_name (bỏ hết cột thô còn lại: audio nặng nhất,
+        # text/speakerID/gender/province_code/duration_sec không cần cho các
+        # bước sau) — để bước 04 có thể phân tích WER theo TỪNG TỈNH thay vì
+        # chỉ 1 con số trung bình toàn tập, insight sâu hơn nhiều.
+        columns_to_drop = [c for c in ds.column_names if c != "province_name"]
         ds = ds.map(
             prepare_example,
-            remove_columns=ds.column_names,  # bỏ cột thô (audio, text,...),
-                                              # chỉ giữ input_features/labels
-                                              # + các cột ta add thêm trong hàm
+            remove_columns=columns_to_drop,  # bỏ cột thô (audio, text,...),
+                                              # giữ lại province_name +
+                                              # các cột ta add thêm trong hàm
             num_proc=1,
             desc=f"Trích features [{split_name}]",
         )

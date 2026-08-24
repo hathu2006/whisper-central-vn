@@ -80,14 +80,20 @@ tiêu là đọc code cũng hiểu được lý do, không chỉ chạy được
 Đo trên tập **test** (609 mẫu, giữ nguyên split gốc của ViMD, model chưa
 từng thấy trong lúc train), bằng `src/04_evaluate_wer.py`:
 
-| Model | WER trên test set (miền Trung) |
-|---|---|
-| Whisper-small gốc (chưa fine-tune) | 41.28% |
-| Whisper-small đã fine-tune (miền Trung) | **21.19%** |
+| Model | WER | CER |
+|---|---|---|
+| Whisper-small gốc (chưa fine-tune) | 41.28% | TODO |
+| Whisper-small đã fine-tune (miền Trung) | **21.19%** | TODO |
 
 **→ Giảm WER tương đối 48.7%** (41.28% → 21.19%) chỉ với ~30.5 giờ dữ liệu
 fine-tune (4617 mẫu train), 2000 step (~6.9 epoch), fine-tune trên 1 GPU T4
 free của Colab trong ~3h9p.
+
+> 📝 CER (Character Error Rate), WER theo từng tỉnh, và bảng top lỗi hay
+> gặp nhất (`src/04_evaluate_wer.py` bản mới) **chưa có số liệu ở đây** —
+> các tính năng này vừa được thêm sau lần chạy đầu, cần chạy lại
+> `02_preprocess_data.py` (để giữ cột `province_name`) rồi `04_evaluate_wer.py`
+> để có số liệu thật, sau đó điền vào đây.
 
 Quá trình train: WER trên tập valid giảm đều qua các lần đánh giá
 (24.11% → 22.99% → 22.79% → 22.48%) mà không có dấu hiệu overfit ngược lại

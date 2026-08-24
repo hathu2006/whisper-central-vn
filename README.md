@@ -78,26 +78,82 @@ tiêu là đọc code cũng hiểu được lý do, không chỉ chạy được
 ## 3. Kết quả
 
 Đo trên tập **test** (609 mẫu, giữ nguyên split gốc của ViMD, model chưa
-từng thấy trong lúc train), bằng `src/04_evaluate_wer.py`:
+từng thấy trong lúc train), bằng `src/04_evaluate_wer.py` (text đã chuẩn hóa
+lowercase + bỏ dấu câu trước khi so sánh — xem `src/data_utils.py`):
 
 | Model | WER | CER |
 |---|---|---|
-| Whisper-small gốc (chưa fine-tune) | 41.28% | TODO |
-| Whisper-small đã fine-tune (miền Trung) | **21.19%** | TODO |
+| Whisper-small gốc (chưa fine-tune) | 38.10% | 23.35% |
+| Whisper-small đã fine-tune (miền Trung) | **17.95%** | **11.48%** |
 
-**→ Giảm WER tương đối 48.7%** (41.28% → 21.19%) chỉ với ~30.5 giờ dữ liệu
-fine-tune (4617 mẫu train), 2000 step (~6.9 epoch), fine-tune trên 1 GPU T4
-free của Colab trong ~3h9p.
-
-> 📝 CER (Character Error Rate), WER theo từng tỉnh, và bảng top lỗi hay
-> gặp nhất (`src/04_evaluate_wer.py` bản mới) **chưa có số liệu ở đây** —
-> các tính năng này vừa được thêm sau lần chạy đầu, cần chạy lại
-> `02_preprocess_data.py` (để giữ cột `province_name`) rồi `04_evaluate_wer.py`
-> để có số liệu thật, sau đó điền vào đây.
+**→ Giảm WER tương đối 52.9%** (38.10% → 17.95%), CER giảm tương đối ~50.8%
+(23.35% → 11.48%), chỉ với ~30.5 giờ dữ liệu fine-tune (4617 mẫu train),
+2000 step (~6.9 epoch), fine-tune trên 1 GPU T4 free của Colab trong ~3h9p.
 
 Quá trình train: WER trên tập valid giảm đều qua các lần đánh giá
 (24.11% → 22.99% → 22.79% → 22.48%) mà không có dấu hiệu overfit ngược lại
 — cho thấy 2000 step là điểm dừng hợp lý, không lãng phí compute.
+
+### WER theo từng tỉnh (model đã fine-tune)
+
+Tất cả 19 tỉnh trong tập test đều có ≥15 mẫu, đủ để báo cáo riêng (không
+cần gộp nhóm "Khác" vì thiếu mẫu):
+
+| Tỉnh | Số mẫu | WER |
+|---|---|---|
+| NgheAn | 43 | 13.61% |
+| QuangNgai | 38 | 25.72% |
+| QuangBinh | 36 | 22.47% |
+| NinhThuan | 34 | 12.14% |
+| HaTinh | 33 | 22.45% |
+| DaNang | 33 | 16.46% |
+| LamDong | 33 | 20.09% |
+| BinhThuan | 33 | 20.38% |
+| ThuaThienHue | 32 | 20.67% |
+| GiaLai | 32 | 16.82% |
+| DakLak | 31 | 15.57% |
+| PhuYen | 31 | 20.59% |
+| KonTum | 30 | 19.17% |
+| QuangTri | 29 | 14.18% |
+| KhanhHoa | 29 | 11.99% |
+| QuangNam | 29 | 16.70% |
+| ThanhHoa | 28 | 13.99% |
+| DakNong | 28 | 14.79% |
+| BinhDinh | 27 | 20.98% |
+
+WER dao động khá rộng giữa các tỉnh (11.99% – 25.72%), không lệch hẳn về
+riêng 1-2 tỉnh chiếm đa số dữ liệu train — cho thấy model không chỉ "học
+thuộc" giọng của tỉnh có nhiều mẫu nhất (NgheAn, 43 mẫu test nhưng WER
+13.61%, không phải thấp nhất). KhanhHoa/NinhThuan (Nam Trung Bộ) có WER thấp
+nhất; QuangNgai/QuangBinh có WER cao nhất — có thể do đặc trưng phát âm
+riêng, hoặc chỉ do nhiễu thống kê với cỡ mẫu ~30/tỉnh (không đủ lớn để kết
+luận chắc chắn, cần thêm dữ liệu để kiểm chứng).
+
+### Top lỗi nhận diện hay gặp nhất (phân tích bằng jiwer alignment)
+
+| Từ đúng | Bị nhận nhầm thành | Số lần |
+|---|---|---|
+| cây | cái | 17 |
+| thành | thanh | 10 |
+| là | thì | 7 |
+| trồng | trong | 7 |
+| quang | quan | 7 |
+| là | và | 7 |
+| tình | tinh | 6 |
+| nó | là | 6 |
+| các | có | 6 |
+| với | cái | 6 |
+| mà | và | 6 |
+| có | cái | 6 |
+| con | còn | 6 |
+| nấm | nắm | 6 |
+| chưng | trưng | 6 |
+
+Pattern rõ rệt nhất: **mất dấu thanh điệu / âm cuối** (thành→thanh,
+trồng→trong, tình→tinh, nấm→nắm, chưng→trưng, quang→quan) — đúng loại lỗi
+kinh điển khi ASR xử lý tiếng Việt, một ngôn ngữ đơn âm tiết có thanh điệu.
+Nhóm lỗi thứ hai là nhầm các từ chức năng tần suất cao (là/thì/và, có/cái) —
+dấu hiệu model thiên về từ phổ biến hơn khi không chắc chắn.
 
 **Ví dụ thực tế** — test qua demo Gradio (bước 5) với 1 đoạn video giọng Huế
 ngoài tập test (không nằm trong quá trình train/eval):
